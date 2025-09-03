@@ -138,24 +138,31 @@ public class GameManager : MonoBehaviour
         {
             playerTeam[i].transform.position = playerPositions[i].position;
             playerTeam[i].transform.rotation = playerPositions[i].rotation;
-            playerTeam[i].GetComponent<CharacterStats>().canSelect = false;
+
+            CharacterStats stats = playerTeam[i].GetComponent<CharacterStats>();
+            stats.canSelect = false;
+            stats.originalPosition = playerPositions[i].position; // Save original nav position
         }
 
         for (int i = 0; i < opponentTeam.Count; i++)
         {
             opponentTeam[i].transform.position = opponentPositions[i].position;
             opponentTeam[i].transform.rotation = opponentPositions[i].rotation;
+
+            CharacterStats stats = opponentTeam[i].GetComponent<CharacterStats>();
+            stats.originalPosition = opponentPositions[i].position; // Save original nav position
         }
     }
 
-    // --- SPEED SORTING ---
-    public void RearrangePlayerTeamBySpeed()
+
+    // --- TEAM GETTERS ---
+    public List<GameObject> GetPlayerTeam()
     {
-        playerTeam.Sort((a, b) => b.GetComponent<CharacterStats>().Speed.CompareTo(a.GetComponent<CharacterStats>().Speed));
+        return playerTeam;
     }
 
-    public void RearrangeOpponentTeamBySpeed()
+    public List<GameObject> GetOpponentTeam()
     {
-        opponentTeam.Sort((a, b) => b.GetComponent<CharacterStats>().Speed.CompareTo(a.GetComponent<CharacterStats>().Speed));
+        return opponentTeam;
     }
 }

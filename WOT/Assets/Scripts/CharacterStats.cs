@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.AI;
 using static UnityEngine.EventSystems.EventTrigger;
 
 public class CharacterStats : MonoBehaviour
@@ -8,6 +9,7 @@ public class CharacterStats : MonoBehaviour
     public bool canSelect = true;
     public GameObject selectionIcon;
 
+    [SerializeField] public string characterName;
     [SerializeField] float health;
     [SerializeField] float attack;
     [SerializeField] float energy;
@@ -17,6 +19,9 @@ public class CharacterStats : MonoBehaviour
     [SerializeField] float criticalMultiplier;
     [SerializeField] float accuracy;
 
+    [SerializeField] public Vector3 originalPosition { get; set; }
+    [SerializeField] public NavMeshAgent navMeshAgent;
+    [SerializeField] public Animator animator;
     //Enum or list of abilities
     public enum Abilities1
     {
@@ -225,28 +230,51 @@ public class CharacterStats : MonoBehaviour
         }
     }
 
+    public void StartNavMeshAgent()
+    {
+        navMeshAgent = GetComponent<NavMeshAgent>();
+        navMeshAgent.enabled = true;
+        GetComponent<EnemyClickHandler>().enabled = true;
+        animator = GetComponent<Animator>();
+    }
+
     // Update is called once per frame
     void Update()
     {
-        
+
+        if (animator != null && navMeshAgent!=null)
+            animator.SetBool("IsWalking", navMeshAgent.velocity.magnitude >= .1f);
+       
     }
+
 
     private void OnMouseDown()
     {
-        CharacterStats[] charStats = FindObjectsOfType<CharacterStats>();
-
-        for (int i = 0; i < charStats.Length; i++)
+        if (CombatManager.instance.GetPlayerTurn)
         {
-            if (charStats[i].selectionIcon != null)
+            Debug.Log(characterName + " Clicked");
+            CharacterStats[] charStats = FindObjectsByType<CharacterStats>(FindObjectsSortMode.None);
+
+            for (int i = 0; i < charStats.Length; i++)
             {
-                charStats[i].selectionIcon.SetActive(false);
+                if (charStats[i].selectionIcon != null)
+                {
+                    charStats[i].selectionIcon.SetActive(false);
+                }
+            }
+
+
+            if (selectionIcon != null)
+            {
+                CombatManager.instance.GetCurrentTargetedEnemy = gameObject;
+                selectionIcon.SetActive(true);
             }
         }
 
+    }
+    public void SelectCharacter()
+    {
+        
 
-        if (selectionIcon != null)
-        {
-            selectionIcon.SetActive(true);
-        }
     }
 }

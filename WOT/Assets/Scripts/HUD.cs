@@ -11,9 +11,11 @@ public class HUD : MonoBehaviour
     [SerializeField] Image attackImage;
     [SerializeField] Image ability1Image;
     [SerializeField] Image ability2Image;
+
+    //Texts to update
     [SerializeField] TextMeshProUGUI currentFighterText;
-
-
+    [SerializeField] TextMeshProUGUI currentAbility1Text;
+    [SerializeField] TextMeshProUGUI currentAbility2Text;
 
     [SerializeField] Sprite attackIcon;
     //Abilities 1
@@ -42,6 +44,12 @@ public class HUD : MonoBehaviour
     [SerializeField] Sprite loseATurnIcon;
     [SerializeField] Sprite vortexIcon;
 
+    [SerializeField] Button attackButton;
+    [SerializeField] Button ability1Button;
+    [SerializeField] Button ability2Button;
+
+
+
     // Start is called before the first frame update
     void Start()
     {
@@ -57,5 +65,11 @@ public class HUD : MonoBehaviour
     public void ChangeAbilities()
     {
         
+    }
+
+    public void AttackButtonClicked()
+    {
+        if (CombatManager.instance.GetCurrentTargetedEnemy != null)
+        CombatManager.instance.OnPlayerActionChosen(CombatManager.instance.GetCurrentTargetedEnemy);
     }
 }
