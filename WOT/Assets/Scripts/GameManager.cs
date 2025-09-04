@@ -154,6 +154,59 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    public void RandomizePlayerTeam()
+    {
+        // Reset previous player team
+        foreach (var container in allCharacters)
+        {
+            if (container.instance != null && playerTeam.Contains(container.instance))
+            {
+                Destroy(container.instance);
+                playerTeam.Remove(container.instance);
+                container.instance = null;
+                container.opponentCanUse = true;
+
+                // Reset icon color
+                int index = allCharacters.IndexOf(container);
+                if (index >= 0 && index < characterIcons.Count)
+                    characterIcons[index].color = Color.white;
+            }
+        }
+
+        // Build list of available characters
+        List<int> availableIndexes = new List<int>();
+        for (int i = 0; i < allCharacters.Count; i++)
+        {
+            availableIndexes.Add(i);
+        }
+
+        // Randomly select 5 unique characters
+        for (int i = 0; i < 5 && availableIndexes.Count > 0; i++)
+        {
+            int randIndex = Random.Range(0, availableIndexes.Count);
+            int charIndex = availableIndexes[randIndex];
+            availableIndexes.RemoveAt(randIndex);
+
+            CharacterContainer container = allCharacters[charIndex];
+
+            // Spawn instance if not already spawned
+            if (container.instance == null)
+                container.instance = Instantiate(container.prefab);
+
+            playerTeam.Add(container.instance);
+            container.opponentCanUse = false;
+
+            // Update UI icon to blue for player
+            characterIcons[charIndex].color = Color.blue;
+        }
+
+        // Disable add/remove buttons since team is full
+        foreach (var button in addRemoveButtons)
+            button.gameObject.SetActive(false);
+
+        // Automatically add opponents after a short delay
+        Invoke(nameof(AddPlayersToOpponentTeam), 1f);
+    }
 
     // --- TEAM GETTERS ---
     public List<GameObject> GetPlayerTeam()

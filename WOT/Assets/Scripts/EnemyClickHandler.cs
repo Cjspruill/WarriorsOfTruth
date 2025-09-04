@@ -1,42 +1,64 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.EnhancedTouch;
 using UnityEngine.SceneManagement;
 
 public class EnemyClickHandler : MonoBehaviour
 {
     private Camera mainCam;
-    private InputAction clickAction;
-
-
+    private InputSystem_Actions inputActions;
+    [SerializeField] Health health;
+    [SerializeField] CharacterStats characterStats;
     private void OnEnable()
-    {        
+    {
         mainCam = Camera.main;
+        health = GetComponent<Health>();
+        characterStats = GetComponent<CharacterStats>();
 
-        // Create a simple click action if not using an InputAction asset
-        clickAction = new InputAction(type: InputActionType.Button, binding: "<Mouse>/leftButton");
-        clickAction.Enable();
+        inputActions = new InputSystem_Actions();
+        inputActions.UI.Click.Enable();
+
+        EnhancedTouchSupport.Enable();
+        inputActions.Enable();
     }
 
     private void OnDestroy()
     {
-        clickAction.Disable();
+        inputActions.Disable();
     }
 
     private void Update()
     {
-        if (SceneManager.GetActiveScene().name == "Game")
-        {
-            if (CombatManager.instance.GetPlayerTurn && clickAction.WasPerformedThisFrame())
-            {
-                Ray ray = mainCam.ScreenPointToRay(Mouse.current.position.ReadValue());
-                RaycastHit hit;
+        if (SceneManager.GetActiveScene().name != "Game")
+            return;
 
-                if (Physics.Raycast(ray, out hit))
+        if (CombatManager.instance.GetPlayerTurn && inputActions.UI.Click.WasPerformedThisFrame())
+        {
+            if (health.GetHealth <= 0) return;
+
+            Vector2 screenPos;
+
+            // Mouse
+            if (Mouse.current != null && Mouse.current.leftButton.isPressed)
+            {
+                screenPos = Mouse.current.position.ReadValue();
+            }
+            // Touch
+            else if (Touchscreen.current != null && Touchscreen.current.primaryTouch.press.wasPressedThisFrame)
+            {
+                screenPos = Touchscreen.current.primaryTouch.position.ReadValue();
+            }
+            else
+            {
+                return;
+            }
+
+            Ray ray = mainCam.ScreenPointToRay(screenPos);
+            if (Physics.Raycast(ray, out RaycastHit hit))
+            {
+                if (hit.collider.gameObject == gameObject)
                 {
-                    if (hit.collider.gameObject == gameObject)
-                    {
-                        HandleClick();
-                    }
+                    HandleClick();
                 }
             }
         }
@@ -44,7 +66,6 @@ public class EnemyClickHandler : MonoBehaviour
 
     private void HandleClick()
     {
-
         CharacterStats[] charStats = FindObjectsByType<CharacterStats>(FindObjectsSortMode.None);
 
         for (int i = 0; i < charStats.Length; i++)
@@ -53,13 +74,17 @@ public class EnemyClickHandler : MonoBehaviour
                 charStats[i].selectionIcon.SetActive(false);
         }
 
-
-        CharacterStats thisCharacterStats = GetComponent<CharacterStats>();
-        if (thisCharacterStats != null)
+        
+        if (characterStats != null)
         {
-            Debug.Log(thisCharacterStats.characterName + " Clicked");
+            Debug.Log(characterStats.characterName + " Clicked");
             CombatManager.instance.GetCurrentTargetedEnemy = gameObject;
-            thisCharacterStats.selectionIcon.SetActive(true);
+            characterStats.selectionIcon.SetActive(true);
         }
+    }
+
+    public void TurnOffSelector()
+    {
+        characterStats.selectionIcon.SetActive(false);
     }
 }

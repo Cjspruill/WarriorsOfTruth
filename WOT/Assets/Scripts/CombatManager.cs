@@ -12,6 +12,7 @@ public class CombatManager : MonoBehaviour
     [SerializeField] private List<GameObject> opponentTeam = new List<GameObject>();
 
     private bool playerHasChosenAction = false;
+    public bool PlayerHasChosenAction => playerHasChosenAction;
     private bool playerTurn = true; // start with player turn, then alternate
 
     private int playerIndex = 0;
@@ -24,6 +25,8 @@ public class CombatManager : MonoBehaviour
 
     public bool GetPlayerTurn { get => playerTurn; set => playerTurn = value; }
     public GameObject GetCurrentTargetedEnemy { get => currentTargetedEnemy; set => currentTargetedEnemy = value; }
+
+    private Coroutine currentPlayerActionCoroutine;
 
     private void Awake()
     {
@@ -42,7 +45,7 @@ public class CombatManager : MonoBehaviour
 
         for(int i = 0; i < characterStats.Length; i++)           
         {
-            characterStats[i].StartNavMeshAgent();
+            characterStats[i].SetupScripts();
         }
 
         playerTeam = GameManager.instance.GetPlayerTeam();
@@ -73,6 +76,7 @@ public class CombatManager : MonoBehaviour
                     {
                         playerIndex = 0; // restart new round
                         RearrangePlayerTeamBySpeed(); // re-sort for next round
+                        ReplenishEnergyForTeam(playerTeam);
                     }
                 }
             }
@@ -89,12 +93,14 @@ public class CombatManager : MonoBehaviour
                     {
                         enemyIndex = 0; // restart new round
                         RearrangeOpponentTeamBySpeed(); // re-sort for next round
+                        ReplenishEnergyForTeam(opponentTeam);
                     }
                 }
             }
 
             // Alternate teams each turn
             GetPlayerTurn = !GetPlayerTurn;
+
         }
     }
 
@@ -103,14 +109,22 @@ public class CombatManager : MonoBehaviour
     {
         playerHasChosenAction = false;
         currentActivePlayer = player;
+        HUD.instance.ChangeAbilities(currentActivePlayer.GetComponent<CharacterStats>().characterName);
 
         var stats = player.GetComponent<CharacterStats>();
         Debug.Log("Player Turn: " + stats.characterName + " (Speed: " + stats.Speed + ")");
         Debug.Log("Waiting for action input from " + stats.characterName + "...");
 
+        // Wait until player chooses an action and it finishes
         while (!playerHasChosenAction)
         {
-            yield return null;
+            yield return null; // wait for button press
+        }
+
+        if (currentPlayerActionCoroutine != null)
+        {
+            yield return currentPlayerActionCoroutine; // wait for attack to finish
+            currentPlayerActionCoroutine = null;
         }
 
         Debug.Log(stats.characterName + " has finished their turn!");
@@ -149,16 +163,33 @@ public class CombatManager : MonoBehaviour
 
         // --- Perform attack ---
         Debug.Log(attackerStats.characterName + " attacks " + target.GetComponent<CharacterStats>().characterName + "!");
-        yield return new WaitForSeconds(0.5f); // simulate attack animation
 
+        attackerStats.animator.SetTrigger("Attack");
+
+        // Wait until attack starts
+        yield return new WaitUntil(() =>
+            attackerStats.animator.GetCurrentAnimatorStateInfo(0).IsName("Attack"));
+
+        CalculateDamage(attacker, target);
+
+        // Wait until we are no longer in Attack (and not transitioning back to it)
+        yield return new WaitUntil(() =>
+        {
+            var state = attackerStats.animator.GetCurrentAnimatorStateInfo(0);
+            return !state.IsName("Attack");
+        });
         // --- Move back ---
-        yield return StartCoroutine(MoveWithNavMesh(attackerStats.navMeshAgent, startPos));
+        yield return StartCoroutine(MoveWithNavMesh(attackerStats.navMeshAgent, startPos, attackerStats.originalRotation));
     }
 
     // --- CALLED BY HUD BUTTON ---
     public void OnPlayerActionChosen(GameObject targetEnemy)
     {
-        StartCoroutine(PlayerAttackSequence(currentActivePlayer, targetEnemy));
+        // Prevent spamming
+        if (playerHasChosenAction) return;
+
+        playerHasChosenAction = true; // lock action immediately
+        currentPlayerActionCoroutine = StartCoroutine(PlayerAttackSequence(currentActivePlayer, targetEnemy));
     }
 
     private IEnumerator PlayerAttackSequence(GameObject attacker, GameObject target)
@@ -172,16 +203,27 @@ public class CombatManager : MonoBehaviour
 
         // --- Perform attack ---
         Debug.Log(attackerStats.characterName + " attacks " + target.GetComponent<CharacterStats>().characterName + "!");
-        yield return new WaitForSeconds(0.5f); // simulate attack animation
+
+        attackerStats.animator.SetTrigger("Attack");
+
+        // Wait until attack starts
+        yield return new WaitUntil(() =>
+            attackerStats.animator.GetCurrentAnimatorStateInfo(0).IsName("Attack"));
+
+        CalculateDamage(attacker, target);
+
+        // Wait until we are no longer in Attack (and not transitioning back to it)
+        yield return new WaitUntil(() =>
+        {
+            var state = attackerStats.animator.GetCurrentAnimatorStateInfo(0);
+            return !state.IsName("Attack");
+        });
 
         // --- Move back ---
-        yield return StartCoroutine(MoveWithNavMesh(attackerStats.navMeshAgent, startPos));
-
-        // End action
-        playerHasChosenAction = true;
+        yield return StartCoroutine(MoveWithNavMesh(attackerStats.navMeshAgent, startPos, attackerStats.originalRotation));
     }
 
-    private IEnumerator MoveWithNavMesh(NavMeshAgent agent, Vector3 destination)
+    private IEnumerator MoveWithNavMesh(NavMeshAgent agent, Vector3 destination, Quaternion? finalRotation = null)
     {
         agent.isStopped = false;
         agent.SetDestination(destination);
@@ -193,6 +235,23 @@ public class CombatManager : MonoBehaviour
         }
 
         agent.isStopped = true;
+
+
+        yield return new WaitForSeconds(1f);
+        
+        // If a final rotation is specified, rotate smoothly
+        if (finalRotation.HasValue)
+        {
+            Quaternion startRot = agent.transform.rotation;
+            float t = 0f;
+            while (t < 1f)
+            {
+                t += Time.deltaTime * 5f; // adjust speed multiplier if needed
+                agent.transform.rotation = Quaternion.Slerp(startRot, finalRotation.Value, t);
+                yield return null;
+            }
+            agent.transform.rotation = finalRotation.Value; // snap to final rotation at the end
+        }
     }
 
     // --- SPEED SORTING ---
@@ -205,4 +264,83 @@ public class CombatManager : MonoBehaviour
     {
         opponentTeam.Sort((a, b) => b.GetComponent<CharacterStats>().Speed.CompareTo(a.GetComponent<CharacterStats>().Speed));
     }
+
+
+    public void CalculateDamage(GameObject attacker, GameObject target)
+    {
+        // --- Accuracy Check ---
+        float accRoll = Random.Range(0f, 100f);
+
+        if (accRoll < attacker.GetComponent<CharacterStats>().Accuracy)
+        {
+            Debug.Log(attacker.name + " missed!");
+            return;
+        }
+
+        float baseDamage = attacker.GetComponent<CharacterStats>().Attack * (attacker.GetComponent<CharacterStats>().Attack / (attacker.GetComponent<CharacterStats>().Attack + Mathf.Pow(target.GetComponent<CharacterStats>().Defense, 1.5f)));
+
+        // --- Critical Roll ---
+        float critRoll = Random.Range(0f, 100f);
+        bool isCrit = critRoll < attacker.GetComponent<CharacterStats>().CriticalChance;
+
+        if (isCrit)
+        {
+            baseDamage *= attacker.GetComponent<CharacterStats>().CriticalMultiplier;
+            Debug.Log("CRITICAL HIT by " + attacker.name + "!");
+        }
+
+        int finalDamage = Mathf.Max(1, Mathf.RoundToInt(baseDamage));
+
+        target.GetComponent<Health>().TakeDamage(finalDamage);
+    }
+
+    public void RemoveCharacterFromTeam(GameObject character)
+    {
+        if (playerTeam.Contains(character))
+        {
+            int removedIndex = playerTeam.IndexOf(character);
+            playerTeam.Remove(character);
+            Debug.Log(character.name + " removed from player team!");
+
+            // Adjust playerIndex if necessary
+            if (removedIndex <= playerIndex && playerIndex > 0)
+                playerIndex--;
+        }
+        else if (opponentTeam.Contains(character))
+        {
+            int removedIndex = opponentTeam.IndexOf(character);
+            opponentTeam.Remove(character);
+            Debug.Log(character.name + " removed from opponent team!");
+
+            // Adjust enemyIndex if necessary
+            if (removedIndex <= enemyIndex && enemyIndex > 0)
+                enemyIndex--;
+        }
+
+        // If the current active player died during their own turn,
+        // mark their action as complete so combat doesn’t stall
+        if (currentActivePlayer == character)
+        {
+            playerHasChosenAction = true;
+            currentActivePlayer = null;
+        }
+
+        if(currentTargetedEnemy == character)
+        {
+            currentTargetedEnemy = null;
+        }
+
+        // Clamp indexes to avoid out-of-range errors
+        playerIndex = Mathf.Clamp(playerIndex, 0, Mathf.Max(0, playerTeam.Count - 1));
+        enemyIndex = Mathf.Clamp(enemyIndex, 0, Mathf.Max(0, opponentTeam.Count - 1));
+    }
+
+
+  void ReplenishEnergyForTeam(List<GameObject> team)
+{
+    for (int i = 0; i < team.Count; i++)
+    {
+        team[i].GetComponent<Energy>().GiveEnergy(2);
+    }
+}
 }
