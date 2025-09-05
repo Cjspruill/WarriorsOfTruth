@@ -49,6 +49,35 @@ public class HUD : MonoBehaviour
     [SerializeField] Button ability1Button;
     [SerializeField] Button ability2Button;
 
+    public enum AbilityType
+    {
+        None,
+        BoulderSmash,
+        IncreaseCriticalChance,
+        IncreaseAccuracy,
+        Confuse2Opponents,
+        LightningBolt,
+        ConfuseAnOpponent,
+        X2Damage,
+        IncreaseSpeed,
+        ShurikenThrow,
+        HealSelf,
+        WaterStream,
+        AttackTeam,
+        LowerOpponentSpeed,
+        RegainEnergy,
+        HealAll,
+        IncreaseCriticalDamage,
+        Fireball,
+        HealTeammate,
+        ExtraTurn,
+        OpponentLosesATurn,
+        OpponentsLoseATurn,
+        Vortex
+    }
+
+    private AbilityType currentAbility1 = AbilityType.None;
+    private AbilityType currentAbility2 = AbilityType.None;
 
     private void Awake()
     {
@@ -92,66 +121,88 @@ public class HUD : MonoBehaviour
                 ability2Image.sprite = increaseCriticalChanceIcon;
                 currentAbility1Text.text = "Boulder Smash";
                 currentAbility2Text.text = "Increase Critical Chance";
+                currentAbility1 = AbilityType.BoulderSmash;
+                currentAbility2 = AbilityType.IncreaseCriticalChance;
                 break;
             case "Faedor":
                 ability1Image.sprite = increaseAccuracyIcon;
                 ability2Image.sprite = confuse2OpponentsIcon;
                 currentAbility1Text.text = "Increase Accuracy";
                 currentAbility2Text.text = "Confuse 2 Opponents";
+                currentAbility1 = AbilityType.IncreaseAccuracy;
+                currentAbility2 = AbilityType.Confuse2Opponents;
                 break;
             case "Inirt":
                 ability1Image.sprite = lightningBoltIcon;
                 ability2Image.sprite = confuseAnOpponentIcon;
                 currentAbility1Text.text = "Lightning Bolt";
                 currentAbility2Text.text = "Confuse an Opponent";
+                currentAbility1 = AbilityType.LightningBolt;
+                currentAbility2 = AbilityType.ConfuseAnOpponent;
                 break;
             case "Kcaz":
                 ability1Image.sprite = x2DamageIcon;
                 ability2Image.sprite = increaseSpeedIcon;
                 currentAbility1Text.text = "X2 Damage";
                 currentAbility2Text.text = "Increase Speed";
+                currentAbility1 = AbilityType.X2Damage;
+                currentAbility2 = AbilityType.IncreaseSpeed;
                 break;
             case "Kim":
                 ability1Image.sprite = shurikenThrowIcon;
                 ability2Image.sprite = healSelfIcon;
                 currentAbility1Text.text = "Shuriken Throw";
                 currentAbility2Text.text = "Heal Self";
+                currentAbility1 = AbilityType.ShurikenThrow;
+                currentAbility2 = AbilityType.HealSelf;
                 break;
             case "Leio":
                 ability1Image.sprite = waterStreamIcon;
                 ability2Image.sprite = attackTeamIcon;
                 currentAbility1Text.text = "Water Stream";
                 currentAbility2Text.text = "Attack Team";
+                currentAbility1 = AbilityType.WaterStream;
+                currentAbility2 = AbilityType.AttackTeam;
                 break;
             case "Mikeul":
                 ability1Image.sprite = lowerSpeedIcon;
                 ability2Image.sprite = regainEnergyIcon;
                 currentAbility1Text.text = "Lower Opponent Speed";
                 currentAbility2Text.text = "Regain Energy";
+                currentAbility1 = AbilityType.LowerOpponentSpeed;
+                currentAbility2 = AbilityType.RegainEnergy;
                 break;
             case "Prince":
                 ability1Image.sprite = healAllIcon;
                 ability2Image.sprite = increaseCriticialDamageIcon;
                 currentAbility1Text.text = "Heal All";
                 currentAbility2Text.text = "Increase Critical Damage";
+                currentAbility1 = AbilityType.HealAll;
+                currentAbility2 = AbilityType.IncreaseCriticalDamage;
                 break;
             case "Sonja":
                 ability1Image.sprite = fireBallIcon;
                 ability2Image.sprite = healTeammateIcon;
                 currentAbility1Text.text = "Fireball";
                 currentAbility2Text.text = "Heal Teammate";
+                currentAbility1 = AbilityType.Fireball;
+                currentAbility2 = AbilityType.HealTeammate;
                 break;
             case "Tomay":
                 ability1Image.sprite = extraTurnIcon;
                 ability2Image.sprite = loseATurnIcon;
                 currentAbility1Text.text = "Extra Turn";
                 currentAbility2Text.text = "Opponent Loses A Turn";
+                currentAbility1 = AbilityType.ExtraTurn;
+                currentAbility2 = AbilityType.OpponentLosesATurn;
                 break;
             case "Viewtl":
                 ability1Image.sprite = opponentsLoseATurnIcon;
                 ability2Image.sprite = vortexIcon;
                 currentAbility1Text.text = "Opponents Lose A Turn";
                 currentAbility2Text.text = "Vortex";
+                currentAbility1 = AbilityType.OpponentsLoseATurn;
+                currentAbility2 = AbilityType.Vortex;
                 break;
         }
     }
@@ -162,6 +213,79 @@ public class HUD : MonoBehaviour
         CombatManager.instance.OnPlayerActionChosen(CombatManager.instance.GetCurrentTargetedEnemy);
     }
 
+    public void Ability1ButtonClicked()
+    {
+        switch (currentAbility1)
+        {
+            case AbilityType.BoulderSmash:
+                Debug.Log("Boulder Smash!");
+                CombatManager.instance.BoulderSmash(CombatManager.instance.CurrentActivePlayer, CombatManager.instance.GetCurrentTargetedEnemy);
+                break;
+            case AbilityType.IncreaseAccuracy:
+
+                break;
+            case AbilityType.LightningBolt:
+                CombatManager.instance.LightningBolt(CombatManager.instance.CurrentActivePlayer, CombatManager.instance.GetCurrentTargetedEnemy);
+                break;
+                
+        }
+    }
+
+    public void Ability2ButtonClicked()
+    {
+        switch (currentAbility2)
+        {
+            case AbilityType.None:
+                break;
+            case AbilityType.BoulderSmash:
+                break;
+            case AbilityType.IncreaseCriticalChance:
+                break;
+            case AbilityType.IncreaseAccuracy:
+                break;
+            case AbilityType.Confuse2Opponents:
+                break;
+            case AbilityType.LightningBolt:
+                break;
+            case AbilityType.ConfuseAnOpponent:
+                break;
+            case AbilityType.X2Damage:
+                break;
+            case AbilityType.IncreaseSpeed:
+                break;
+            case AbilityType.ShurikenThrow:
+                break;
+            case AbilityType.HealSelf:
+                break;
+            case AbilityType.WaterStream:
+                break;
+            case AbilityType.AttackTeam:
+                CombatManager.instance.AttackTeam(CombatManager.instance.CurrentActivePlayer);
+                break;
+            case AbilityType.LowerOpponentSpeed:
+                break;
+            case AbilityType.RegainEnergy:
+                break;
+            case AbilityType.HealAll:
+                break;
+            case AbilityType.IncreaseCriticalDamage:
+                break;
+            case AbilityType.Fireball:
+                break;
+            case AbilityType.HealTeammate:
+                break;
+            case AbilityType.ExtraTurn:
+                break;
+            case AbilityType.OpponentLosesATurn:
+                break;
+            case AbilityType.OpponentsLoseATurn:
+                break;
+            case AbilityType.Vortex:
+                break;
+            default:
+                break;
+        }
+    }
     public void SpeedUpGameTime(int speed)
     {
         switch (speed)

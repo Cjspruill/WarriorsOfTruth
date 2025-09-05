@@ -16,7 +16,7 @@ public class Energy : MonoBehaviour
         maxEnergy = characterStats.Energy;
 
         energySlider.maxValue = maxEnergy;
-        GetEnergy = 0;
+        GetEnergy = maxEnergy;
 
     }
 

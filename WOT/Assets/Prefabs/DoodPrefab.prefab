@@ -1574,6 +1574,7 @@ GameObject:
   - component: {fileID: 8055416651699611147}
   - component: {fileID: 7561973505058330552}
   - component: {fileID: -361544036276468878}
+  - component: {fileID: -7148037800459452114}
   m_Layer: 0
   m_Name: DoodPrefab
   m_TagString: Untagged
@@ -1743,6 +1744,18 @@ MonoBehaviour:
   maxEnergy: 0
   energySlider: {fileID: 7084298512865621091}
   characterStats: {fileID: 0}
+--- !u!114 &-7148037800459452114
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4599880842374003219}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 50617d9ed1d9dd84ab76832aecde8508, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DoodEvents
 --- !u!1 &4611140354890112433
 GameObject:
   m_ObjectHideFlags: 0

@@ -1,7 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
+using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.AI;
+using static UnityEngine.GraphicsBuffer;
 
 public class CombatManager : MonoBehaviour
 {
@@ -25,8 +27,14 @@ public class CombatManager : MonoBehaviour
 
     public bool GetPlayerTurn { get => playerTurn; set => playerTurn = value; }
     public GameObject GetCurrentTargetedEnemy { get => currentTargetedEnemy; set => currentTargetedEnemy = value; }
+    public List<GameObject> OpponentTeam { get => opponentTeam; set => opponentTeam = value; }
 
     private Coroutine currentPlayerActionCoroutine;
+
+    public GameObject boulderSmashPrefab;
+    public GameObject lightningBoltPrefab;
+    public GameObject attackTeamPrefab;
+    public bool abilityFinished = false;
 
     private void Awake()
     {
@@ -43,13 +51,13 @@ public class CombatManager : MonoBehaviour
 
         CharacterStats[] characterStats = FindObjectsByType<CharacterStats>(FindObjectsSortMode.None);
 
-        for(int i = 0; i < characterStats.Length; i++)           
+        for (int i = 0; i < characterStats.Length; i++)
         {
             characterStats[i].SetupScripts();
         }
 
         playerTeam = GameManager.instance.GetPlayerTeam();
-        opponentTeam = GameManager.instance.GetOpponentTeam();
+        OpponentTeam = GameManager.instance.GetOpponentTeam();
 
         // Sort once at the beginning
         RearrangePlayerTeamBySpeed();
@@ -82,18 +90,18 @@ public class CombatManager : MonoBehaviour
             }
             else
             {
-                if (opponentTeam.Count > 0)
+                if (OpponentTeam.Count > 0)
                 {
-                    GameObject activeEnemy = opponentTeam[enemyIndex];
+                    GameObject activeEnemy = OpponentTeam[enemyIndex];
                     yield return StartCoroutine(HandleOpponentTurn(activeEnemy));
 
                     // Advance to next fighter
                     enemyIndex++;
-                    if (enemyIndex >= opponentTeam.Count)
+                    if (enemyIndex >= OpponentTeam.Count)
                     {
                         enemyIndex = 0; // restart new round
                         RearrangeOpponentTeamBySpeed(); // re-sort for next round
-                        ReplenishEnergyForTeam(opponentTeam);
+                        ReplenishEnergyForTeam(OpponentTeam);
                     }
                 }
             }
@@ -238,7 +246,7 @@ public class CombatManager : MonoBehaviour
 
 
         yield return new WaitForSeconds(1f);
-        
+
         // If a final rotation is specified, rotate smoothly
         if (finalRotation.HasValue)
         {
@@ -262,7 +270,7 @@ public class CombatManager : MonoBehaviour
 
     private void RearrangeOpponentTeamBySpeed()
     {
-        opponentTeam.Sort((a, b) => b.GetComponent<CharacterStats>().Speed.CompareTo(a.GetComponent<CharacterStats>().Speed));
+        OpponentTeam.Sort((a, b) => b.GetComponent<CharacterStats>().Speed.CompareTo(a.GetComponent<CharacterStats>().Speed));
     }
 
 
@@ -306,10 +314,10 @@ public class CombatManager : MonoBehaviour
             if (removedIndex <= playerIndex && playerIndex > 0)
                 playerIndex--;
         }
-        else if (opponentTeam.Contains(character))
+        else if (OpponentTeam.Contains(character))
         {
-            int removedIndex = opponentTeam.IndexOf(character);
-            opponentTeam.Remove(character);
+            int removedIndex = OpponentTeam.IndexOf(character);
+            OpponentTeam.Remove(character);
             Debug.Log(character.name + " removed from opponent team!");
 
             // Adjust enemyIndex if necessary
@@ -325,22 +333,207 @@ public class CombatManager : MonoBehaviour
             currentActivePlayer = null;
         }
 
-        if(currentTargetedEnemy == character)
+        if (currentTargetedEnemy == character)
         {
             currentTargetedEnemy = null;
         }
 
         // Clamp indexes to avoid out-of-range errors
         playerIndex = Mathf.Clamp(playerIndex, 0, Mathf.Max(0, playerTeam.Count - 1));
-        enemyIndex = Mathf.Clamp(enemyIndex, 0, Mathf.Max(0, opponentTeam.Count - 1));
+        enemyIndex = Mathf.Clamp(enemyIndex, 0, Mathf.Max(0, OpponentTeam.Count - 1));
     }
 
 
-  void ReplenishEnergyForTeam(List<GameObject> team)
-{
-    for (int i = 0; i < team.Count; i++)
+    void ReplenishEnergyForTeam(List<GameObject> team)
     {
-        team[i].GetComponent<Energy>().GiveEnergy(2);
+        for (int i = 0; i < team.Count; i++)
+        {
+            team[i].GetComponent<Energy>().GiveEnergy(2);
+        }
     }
-}
+
+    #region Abilities
+    public void BoulderSmash(GameObject attacker, GameObject target)
+    {
+        if (attacker.GetComponent<Energy>().GetEnergy < 4) return;
+
+
+        playerHasChosenAction = true; // lock action
+        currentPlayerActionCoroutine = StartCoroutine(BoulderSmashSequence(attacker, target));
+    }
+
+    private IEnumerator BoulderSmashSequence(GameObject attacker, GameObject target)
+    {
+        var attackerStats = attacker.GetComponent<CharacterStats>();
+
+        // Spend energy
+        attacker.GetComponent<Energy>().TakeEnergy(4);
+
+        abilityFinished = false;
+
+        // Play Boulder Smash animation
+        attackerStats.animator.SetTrigger("Ability1");
+
+        // Wait until the animation event sets abilityFinished = true
+        yield return new WaitUntil(() => abilityFinished);
+
+        Debug.Log(attackerStats.characterName + " finished Boulder Smash!");
+
+        abilityFinished = false;
+    }
+
+
+    public void IncreaseAccuracy(GameObject attacker) 
+    {
+
+    }
+
+    public void LightningBolt(GameObject attacker, GameObject target)
+    {
+        if (attacker.GetComponent<Energy>().GetEnergy < 6) return;
+
+
+        playerHasChosenAction = true; // lock action
+        currentPlayerActionCoroutine = StartCoroutine(LightningBoltSequence(attacker, target));
+    }
+
+    private IEnumerator LightningBoltSequence(GameObject attacker, GameObject target)
+    {
+        var attackerStats = attacker.GetComponent<CharacterStats>();
+
+        // Spend energy
+        attacker.GetComponent<Energy>().TakeEnergy(6);
+
+        abilityFinished = false;
+
+        // Play Boulder Smash animation
+        attackerStats.animator.SetTrigger("Ability1");
+
+        // Wait until the animation event sets abilityFinished = true
+        yield return new WaitUntil(() => abilityFinished);
+
+        target.GetComponent<Health>().TakeDamage(35);
+
+        Debug.Log(attackerStats.characterName + " finished Lightning Bolt!");
+
+        abilityFinished = false;
+    }
+
+    public void X2Damge(GameObject attacker)
+    {
+
+    }
+
+    public void ShurikenThrow(GameObject attacker, GameObject target)
+    {
+
+    }
+
+    public void WaterStream(GameObject attacker, GameObject target)
+    {
+
+    }
+
+    public void LowerSpeed(GameObject attacker, GameObject target)
+    {
+
+    }
+
+    public void HealAll(GameObject attacker)
+    {
+
+    }
+
+    public void Fireball(GameObject attacker, GameObject target)
+    {
+
+    }
+
+    public void ExtraTurn()
+    {
+
+    }
+
+    public void OpponentsLoseATurn()
+    {
+
+    }
+
+
+    public void IncreaseCriticalChance(GameObject attacker)
+    {
+
+    }
+
+    public void Confuse2Opponents()
+    {
+
+    }
+
+    public void ConfuseAnOpponent()
+    {
+
+    }
+
+    public void IncreaseSpeed()
+    {
+
+    }
+    public void HealSelf()
+    {
+    }
+
+    public void AttackTeam(GameObject attacker)
+    {
+        if (attacker.GetComponent<Energy>().GetEnergy < 3) return;
+        playerHasChosenAction = true; // lock action
+        currentPlayerActionCoroutine = StartCoroutine(AttackTeamSequence(attacker));
+    }
+
+    private IEnumerator AttackTeamSequence(GameObject attacker)
+    {
+        var attackerStats = attacker.GetComponent<CharacterStats>();
+
+        // Spend energy
+        attacker.GetComponent<Energy>().TakeEnergy(3);
+
+        abilityFinished = false;
+
+        // Play Boulder Smash animation
+        attackerStats.animator.SetTrigger("Ability2");
+
+        // Wait until the animation event sets abilityFinished = true
+        yield return new WaitUntil(() => abilityFinished);
+
+        Debug.Log(attackerStats.characterName + " finished Attack Team!");
+
+        abilityFinished = false;
+    }
+
+    public void RegainEnergy()
+    {
+
+    }
+
+    public void IncreaseCriticalDamage()
+    {
+
+    }
+
+    public void HealTeammate()
+    {
+
+    }
+
+    public void OpponentLosesATurn()
+    {
+
+    }
+
+    public void Vortex()
+    {
+
+    }
+
+    #endregion
 }

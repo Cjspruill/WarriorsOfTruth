@@ -2678,6 +2678,7 @@ GameObject:
   - component: {fileID: 1052191706494215152}
   - component: {fileID: -7723597329609835709}
   - component: {fileID: 8750573624680746881}
+  - component: {fileID: 3155468135322448239}
   m_Layer: 0
   m_Name: LeioPrefab
   m_TagString: Untagged
@@ -2847,6 +2848,18 @@ MonoBehaviour:
   maxEnergy: 0
   energySlider: {fileID: 8636385284936919890}
   characterStats: {fileID: 0}
+--- !u!114 &3155468135322448239
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6995343180251350414}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 880bcb0620567fb43bfcb2c6810b771f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LeioEvents
 --- !u!1 &7020347251084771903
 GameObject:
   m_ObjectHideFlags: 0
